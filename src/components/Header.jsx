@@ -16,7 +16,8 @@ export default function Header({
   onSimulateBatch, 
   isProcessing,
   pendingCount,
-  onResetData
+  onResetData,
+  backendOnline
 }) {
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30 transition-colors">
@@ -47,8 +48,8 @@ export default function Header({
             
             <div className="flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
               <span className="inline-flex items-center gap-1">
-                <Cpu className="w-3 h-3 text-emerald-500" />
-                TF-IDF & K-Means Active
+                <Cpu className={`w-3 h-3 ${backendOnline ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                {backendOnline ? 'Live Backend Connected' : 'TF-IDF & K-Means Local'}
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1">

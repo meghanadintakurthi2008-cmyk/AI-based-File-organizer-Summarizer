@@ -16,6 +16,7 @@ import {
   initialClusterSuggestions,
   sampleBatchUploads
 } from './data/mockData';
+import { api } from './services/api';
 
 export default function App() {
   // Theme state: dark / light
@@ -42,6 +43,9 @@ export default function App() {
   // Toast notifications
   const [toasts, setToasts] = useState([]);
 
+  // Backend live connection status
+  const [backendOnline, setBackendOnline] = useState(false);
+
   // Sync theme with HTML class
   useEffect(() => {
     const root = document.documentElement;
@@ -51,6 +55,34 @@ export default function App() {
       root.classList.remove('dark');
     }
   }, [darkMode]);
+
+  // Check backend health & sync if active
+  useEffect(() => {
+    let isMounted = true;
+    async function checkBackend() {
+      const isAlive = await api.checkHealth();
+      if (!isMounted) return;
+      setBackendOnline(isAlive);
+      if (isAlive) {
+        try {
+          const [m, recs, tree, clusters] = await Promise.all([
+            api.getMetrics(),
+            api.getRecommendations(),
+            api.getFolderTree(),
+            api.getClusterSuggestions()
+          ]);
+          if (m && isMounted) setMetrics(m);
+          if (recs && recs.length > 0 && isMounted) setFiles(recs);
+          if (tree && tree.length > 0 && isMounted) setFolderTree(tree);
+          if (clusters && clusters.length > 0 && isMounted) setClusterSuggestions(clusters);
+        } catch (err) {
+          console.warn('Backend sync failed, using mock data:', err);
+        }
+      }
+    }
+    checkBackend();
+    return () => { isMounted = false; };
+  }, []);
 
   // Toast Helper
   const addToast = (title, message = '', type = 'info') => {
@@ -354,6 +386,7 @@ export default function App() {
         isProcessing={isProcessing}
         pendingCount={files.length}
         onResetData={handleResetData}
+        backendOnline={backendOnline}
       />
 
       {/* Main Workspace Layout */}
