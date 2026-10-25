@@ -257,18 +257,33 @@ export default function RecommendationTable({
             </tr>
           </thead>
           
-          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800/60">
+          <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/60">
             {filteredFiles.length === 0 ? (
               <tr>
-                <td colSpan="7" className="py-16 text-center text-zinc-500 dark:text-zinc-400">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <FolderCheck className="w-8 h-8 text-zinc-400 dark:text-zinc-600 stroke-[1.5]" />
-                    <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      No files matching the active filter
-                    </p>
-                    <p className="text-xs text-zinc-400 max-w-sm">
-                      Try resetting your search query or simulate new files using the top controls.
-                    </p>
+                <td colSpan="7" className="py-16 text-center text-slate-500 dark:text-zinc-400">
+                  <div className="flex flex-col items-center justify-center gap-2.5 max-w-sm mx-auto">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800/80 text-slate-400 dark:text-zinc-500 flex items-center justify-center">
+                      <FolderCheck className="w-6 h-6 stroke-[1.5]" />
+                    </div>
+                    {files.length === 0 ? (
+                      <>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
+                          No files in recommendation queue
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400">
+                          Upload files using the drag-and-drop area above to get instant folder recommendations.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
+                          No files matching the active filter
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400">
+                          Try resetting your search query or switching the filter pills above.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

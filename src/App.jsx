@@ -354,30 +354,6 @@ export default function App() {
     }
   };
 
-  // Quick sample file injection (creates genuine text File and calls real upload)
-  const handleSimulateBatch = () => {
-    const samples = [
-      {
-        name: "neural_network_optimization_notes.pdf",
-        content: "Abstract: We present an analysis of sparse self-attention transformer mechanisms with multi-head cross entropy optimization in PyTorch."
-      },
-      {
-        name: "Stripe_Monthly_Platform_Invoice.pdf",
-        content: "Tax Invoice #INV-2026-9812 Billed To: Hyperion Labs. Amount Due: $1,450.00 USD. Remittance date: October 2026."
-      },
-      {
-        name: "Mutual_NDA_Bilateral_Agreement.docx",
-        content: "MUTUAL NON-DISCLOSURE AGREEMENT: Confidential information, proprietary trade secrets, governing law, and indemnification between parties."
-      }
-    ];
-
-    const sample = samples[Math.floor(Math.random() * samples.length)];
-    const blob = new Blob([sample.content], { type: "text/plain" });
-    const file = new File([blob], sample.name, { type: "text/plain" });
-
-    handleProcessFiles([file]);
-  };
-
   // Accept unsupervised cluster suggestion
   const handleAcceptCluster = async (cluster) => {
     const newFolderNode = {
@@ -406,6 +382,9 @@ export default function App() {
     if (backendOnline) {
       try {
         await api.materializeCluster(cluster.id);
+        const [m, tree] = await Promise.all([api.getMetrics(), api.getFolderTree()]);
+        setMetrics(m);
+        setFolderTree(tree);
       } catch (err) {
         console.warn('Backend cluster error:', err);
       }
@@ -441,20 +420,12 @@ export default function App() {
     if (backendOnline) {
       try {
         await api.createFolder(name);
+        const tree = await api.getFolderTree();
+        setFolderTree(tree);
       } catch (err) {
         console.warn('Backend create folder error:', err);
       }
     }
-  };
-
-  // Reset demo dataset
-  const handleResetData = () => {
-    setMetrics(initialMetrics);
-    setFiles(initialRecommendationFiles);
-    setFolderTree(initialFolderTree);
-    setClusterSuggestions(initialClusterSuggestions);
-    setActiveFilter('All');
-    addToast('System Reset', 'Restored initial sample data', 'info');
   };
 
   return (
@@ -464,10 +435,7 @@ export default function App() {
       <Header
         darkMode={darkMode}
         setDarkMode={setDarkMode}
-        onSimulateBatch={handleSimulateBatch}
-        isProcessing={isProcessing}
         pendingCount={files.length}
-        onResetData={handleResetData}
         backendOnline={backendOnline}
         onOpenAiStatus={() => setIsAiStatusOpen(true)}
       />

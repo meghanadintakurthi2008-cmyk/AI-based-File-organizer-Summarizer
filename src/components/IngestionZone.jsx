@@ -113,37 +113,11 @@ export default function IngestionZone({
           Supports PDF, Word (.docx), text files, scanned images, and spreadsheets. Files are analyzed automatically to suggest the right folder.
         </p>
 
-        {/* Quick Demo Pre-load buttons & AI Status toggle */}
-        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800/80 w-full max-w-lg flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400 text-[11px]">
-            <span>Try sample:</span>
-            <button
-              type="button"
-              disabled={isProcessing}
-              onClick={(e) => {
-                e.stopPropagation();
-                const blob = new Blob(["Abstract: Analysis of transformer attention models and deep learning loss functions in PyTorch."], { type: "text/plain" });
-                const file = new File([blob], "transformer_notes.txt", { type: "text/plain" });
-                onProcessFiles([file]);
-              }}
-              className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 font-medium transition-colors"
-            >
-              + Research Note
-            </button>
-            <button
-              type="button"
-              disabled={isProcessing}
-              onClick={(e) => {
-                e.stopPropagation();
-                const blob = new Blob(["Invoice #INV-2026-98 Billed To: Global Tech. Amount Due: $1,250.00 USD. Payment Remittance."], { type: "text/plain" });
-                const file = new File([blob], "Stripe_Invoice_October.txt", { type: "text/plain" });
-                onProcessFiles([file]);
-              }}
-              className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 font-medium transition-colors"
-            >
-              + Invoice
-            </button>
-          </div>
+        {/* Footer with supported formats and AI status link */}
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800/80 w-full max-w-lg flex items-center justify-between gap-2 text-xs">
+          <span className="text-[11px] text-slate-400">
+            Upload files to generate instant folder recommendations
+          </span>
 
           <button
             type="button"

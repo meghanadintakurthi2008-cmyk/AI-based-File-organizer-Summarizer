@@ -2,42 +2,39 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import MetricSnapshot, FileRecord
+from ..models import FileRecord
 from ..schemas import MetricsResponse
 
 router = APIRouter(prefix="/metrics", tags=["Metrics & Health"])
 
 @router.get("", response_model=MetricsResponse)
 def get_metrics(db: Session = Depends(get_db)):
-    metric = db.query(MetricSnapshot).order_by(MetricSnapshot.id.desc()).first()
+    """
+    Computes real, live metrics strictly from actual uploaded file records.
+    """
+    all_files = db.query(FileRecord).all()
+    total_analyzed = len(all_files)
     
-    # Calculate unreadable flagged count dynamically
-    flagged_count = db.query(FileRecord).filter(
-        FileRecord.ingestion_method == "Metadata Only Fallback",
-        FileRecord.status == "pending"
-    ).count()
+    auto_sorted_today = sum(1 for f in all_files if f.status == "approved")
+    unreadable_flagged = sum(1 for f in all_files if f.ingestion_method == "Metadata Only Fallback")
 
-    base_unreadable = (metric.unreadable_flagged if metric else 18) + flagged_count
-
-    if not metric:
-        return MetricsResponse(
-            totalAnalyzed=1248,
-            confidence=94.2,
-            autoSortedToday=342,
-            unreadableFlagged=18,
-            trendWeek="+14.8%",
-            targetRate="85.5% automated",
-            engineVersion="TF-IDF + K-Means v2.4",
-            workersActive=4
-        )
+    if total_analyzed > 0:
+        avg_confidence = round(sum(f.confidence for f in all_files) / total_analyzed, 1)
+        sort_rate_pct = round((auto_sorted_today / total_analyzed) * 100.0, 1)
+        target_rate = f"{sort_rate_pct}% sorted"
+        trend_week = f"+{total_analyzed} new"
+    else:
+        avg_confidence = 0.0
+        target_rate = "0% sorted"
+        trend_week = "0%"
 
     return MetricsResponse(
-        totalAnalyzed=metric.total_analyzed,
-        confidence=metric.categorization_confidence,
-        autoSortedToday=metric.auto_sorted_today,
-        unreadableFlagged=base_unreadable,
-        trendWeek=metric.trend_week,
-        targetRate=metric.target_rate,
+        totalAnalyzed=total_analyzed,
+        confidence=avg_confidence,
+        autoSortedToday=auto_sorted_today,
+        unreadableFlagged=unreadable_flagged,
+        trendWeek=trend_week,
+        targetRate=target_rate,
         engineVersion="TF-IDF + K-Means v2.4",
         workersActive=4
     )
