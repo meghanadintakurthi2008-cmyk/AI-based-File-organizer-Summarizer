@@ -72,29 +72,29 @@ export default function RecommendationTable({
     }
   };
 
-  // Ingestion Method badge renderer
+  // Ingestion Method badge renderer with user-friendly labels
   const getIngestionBadge = (method) => {
     switch (method) {
       case 'Full Text NLP':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
             <Sparkles className="w-3 h-3 text-emerald-500" />
-            Full Text NLP
+            Content Scan
           </span>
         );
       case 'OCR Extracted':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60">
             <ScanLine className="w-3 h-3 text-indigo-500" />
-            OCR Extracted
+            Scanned Document
           </span>
         );
       case 'Metadata Only Fallback':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
             <AlertTriangle className="w-3 h-3 text-amber-500" />
-            Metadata Only Fallback
+            File Info Only
           </span>
         );
     }
@@ -186,17 +186,17 @@ export default function RecommendationTable({
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs">
           {[
             { id: 'All', label: 'All Files' },
-            { id: 'High Confidence', label: 'High Confidence (≥90%)' },
+            { id: 'High Confidence', label: 'High Match (≥90%)' },
             { id: 'Needs Review', label: 'Needs Review (<80%)' },
-            { id: 'Metadata Only Fallback', label: 'Metadata Only' },
+            { id: 'Metadata Only Fallback', label: 'File Info Only' },
           ].map((pill) => (
             <button
               key={pill.id}
               onClick={() => setActiveFilter(pill.id)}
               className={`px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
                 activeFilter === pill.id
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  ? 'bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
               }`}
             >
               {pill.label}
@@ -217,7 +217,7 @@ export default function RecommendationTable({
                 onApproveSelected(Array.from(selectedFileIds));
                 setSelectedFileIds(new Set());
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-xs transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-2xs transition-colors"
             >
               <CheckCheck className="w-3.5 h-3.5" />
               Approve & Move Selected
@@ -227,7 +227,7 @@ export default function RecommendationTable({
                 onDismissSelected(Array.from(selectedFileIds));
                 setSelectedFileIds(new Set());
               }}
-              className="px-2.5 py-1 rounded-md bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700 font-medium transition-colors"
+              className="px-2.5 py-1 rounded-md bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-300 dark:hover:bg-zinc-700 font-medium transition-colors"
             >
               Dismiss
             </button>
@@ -239,20 +239,20 @@ export default function RecommendationTable({
       <div className="overflow-x-auto min-h-[360px]">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/75 dark:bg-zinc-950/50 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+            <tr className="border-b border-slate-200 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-950/50 text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
               <th className="py-3 pl-4 pr-2 w-8">
                 <input
                   type="checkbox"
                   checked={filteredFiles.length > 0 && selectedFileIds.size === filteredFiles.length}
                   onChange={handleSelectAll}
-                  className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  className="rounded border-slate-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
               </th>
               <th className="py-3 px-3">File Details</th>
-              <th className="py-3 px-3">Ingestion Method</th>
-              <th className="py-3 px-3">Predicted Category</th>
-              <th className="py-3 px-3 min-w-[260px]">Recommended Target Folder</th>
-              <th className="py-3 px-3">Alternative Suggestions</th>
+              <th className="py-3 px-3">Scan Method</th>
+              <th className="py-3 px-3">Category</th>
+              <th className="py-3 px-3 min-w-[260px]">Target Folder</th>
+              <th className="py-3 px-3">Other Candidates</th>
               <th className="py-3 pr-4 pl-3 text-right">Actions</th>
             </tr>
           </thead>

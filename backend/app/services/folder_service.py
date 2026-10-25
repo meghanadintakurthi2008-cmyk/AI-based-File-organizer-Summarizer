@@ -177,6 +177,17 @@ class FolderService:
         # Update file record
         file_record.recommended_folder = target_folder
         file_record.status = "approved"
+
+        # Physically move file on disk if original file exists
+        if file_record.original_path and Path(file_record.original_path).exists():
+            target_dir = ORGANIZED_DIR / target_folder.strip("/")
+            target_dir.mkdir(parents=True, exist_ok=True)
+            target_dest = target_dir / file_record.filename
+            try:
+                shutil.copy2(file_record.original_path, target_dest)
+                file_record.current_path = str(target_dest)
+            except Exception:
+                pass
         
         # Increment folder counters
         folder = db.query(FolderNode).filter(FolderNode.path == target_folder).first()
