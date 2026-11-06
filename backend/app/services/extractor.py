@@ -1,169 +1,324 @@
 import os
 import re
-import zipfile
-import xml.etree.ElementTree as ET
+import csv
 from pathlib import Path
 from PIL import Image
 
+# Import document parsing libraries
+try:
+    from pypdf import PdfReader
+    HAS_PYPDF = True
+except ImportError:
+    HAS_PYPDF = False
+
+try:
+    import docx
+    HAS_DOCX = True
+except ImportError:
+    HAS_DOCX = False
+
+try:
+    import pptx
+    HAS_PPTX = True
+except ImportError:
+    HAS_PPTX = False
+
+
 class DocumentExtractor:
     """
-    Robust multi-format document parser supporting Full Text NLP, 
-    OCR extraction, and Metadata-only fallback.
+    Multi-format document content & metadata extractor.
+    Supports PDF, DOCX, PPTX, XLSX/CSV, Images, Text/Markdown, Code, and Fallbacks.
     """
 
     @classmethod
     def extract(cls, file_path: Path, filename: str) -> dict:
         ext = filename.split(".")[-1].lower() if "." in filename else ""
-        
-        # 1. Plain Text / Markdown / Code / CSV
-        if ext in ["txt", "md", "csv", "json", "py", "log"]:
-            return cls._extract_text(file_path, filename)
-            
-        # 2. DOCX Documents (using native zipfile + XML parse)
-        elif ext in ["docx", "doc"]:
-            return cls._extract_docx(file_path, filename)
-            
-        # 3. PDF Documents
-        elif ext == "pdf":
+        lower_name = filename.lower()
+
+        # 1. PDF
+        if ext == "pdf":
             return cls._extract_pdf(file_path, filename)
-            
-        # 4. Spreadsheets (XLSX)
-        elif ext in ["xlsx", "xls"]:
-            return cls._extract_xlsx(file_path, filename)
-            
-        # 5. Images (PNG, JPG, JPEG) -> OCR / Metadata
-        elif ext in ["png", "jpg", "jpeg", "webp", "bmp"]:
+
+        # 2. Word (.docx, .doc)
+        if ext in ["docx", "doc"]:
+            return cls._extract_docx(file_path, filename)
+
+        # 3. PowerPoint (.pptx, .ppt)
+        if ext in ["pptx", "ppt"]:
+            return cls._extract_pptx(file_path, filename)
+
+        # 4. Excel & CSV
+        if ext in ["xlsx", "xls", "csv", "tsv"]:
+            return cls._extract_spreadsheet(file_path, filename, ext)
+
+        # 5. Images
+        if ext in ["png", "jpg", "jpeg", "webp", "gif", "svg", "bmp", "ico", "tiff"]:
             return cls._extract_image(file_path, filename)
-            
-        # Fallback for unknown binaries
-        return cls._metadata_fallback(file_path, filename, reason="Unsupported binary format")
 
-    @classmethod
-    def _extract_text(cls, file_path: Path, filename: str) -> dict:
-        try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                content = f.read()
-            if len(content.strip()) > 10:
-                return {
-                    "raw_text": content,
-                    "method": "Full Text NLP",
-                    "excerpt": content.strip()[:280] + ("..." if len(content) > 280 else ""),
-                    "metadata": {"length_chars": len(content)}
-                }
-        except Exception as e:
-            pass
-        return cls._metadata_fallback(file_path, filename, reason="Text read error")
+        # 6. Text, Markdown, and Code
+        if ext in ["txt", "md", "rtf", "log", "rst", "py", "js", "ts", "html", "css", "java", "c", "cpp", "json", "sql", "sh", "yaml", "yml"]:
+            return cls._extract_text(file_path, filename)
 
-    @classmethod
-    def _extract_docx(cls, file_path: Path, filename: str) -> dict:
-        try:
-            with zipfile.ZipFile(file_path) as z:
-                xml_content = z.read("word/document.xml")
-                root = ET.fromstring(xml_content)
-                paragraphs = []
-                for p in root.iter('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p'):
-                    texts = [t.text for t in p.iter('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t') if t.text]
-                    if texts:
-                        paragraphs.append("".join(texts))
-                text = "\n".join(paragraphs)
-                if len(text.strip()) > 10:
-                    return {
-                        "raw_text": text,
-                        "method": "Full Text NLP",
-                        "excerpt": text.strip()[:280] + ("..." if len(text) > 280 else ""),
-                        "metadata": {"paragraphs": len(paragraphs)}
-                    }
-        except Exception:
-            pass
-        return cls._metadata_fallback(file_path, filename, reason="Corrupt or encrypted DOCX stream")
+        # 7. Unrecognized or binary files
+        return cls._binary_fallback(file_path, filename)
 
     @classmethod
     def _extract_pdf(cls, file_path: Path, filename: str) -> dict:
+        if not file_path.exists():
+            return cls._binary_fallback(file_path, filename)
+
+        if HAS_PYPDF:
+            try:
+                reader = PdfReader(str(file_path))
+                num_pages = len(reader.pages)
+                page_texts = []
+                for i, page in enumerate(reader.pages):
+                    t = page.extract_text()
+                    if t and t.strip():
+                        page_texts.append(t.strip())
+
+                full_text = "\n\n".join(page_texts)
+                is_scanned = len(full_text.strip()) < 20 and num_pages > 0
+
+                if not is_scanned:
+                    return {
+                        "raw_text": full_text,
+                        "method": "PDF Page Extraction (pypdf)",
+                        "excerpt": full_text[:300] + ("..." if len(full_text) > 300 else ""),
+                        "metadata": {
+                            "page_count": num_pages,
+                            "word_count": len(full_text.split()),
+                            "is_scanned": False
+                        }
+                    }
+                else:
+                    # Check stream fallback before concluding it's a scanned image
+                    try:
+                        with open(file_path, "rb") as f:
+                            data = f.read()
+                        text_chunks = re.findall(rb"\((.*?)\)Tj", data)
+                        if not text_chunks:
+                            text_chunks = re.findall(rb"\[(.*?)\]TJ", data)
+                        extracted = " ".join([c.decode("latin-1", errors="ignore") for c in text_chunks])
+                        extracted = re.sub(r"\s+", " ", extracted).strip()
+                        if len(extracted) > 20:
+                            return {
+                                "raw_text": extracted,
+                                "method": "PDF Stream Fallback",
+                                "excerpt": extracted[:300] + ("..." if len(extracted) > 300 else ""),
+                                "metadata": {"word_count": len(extracted.split()), "page_count": num_pages, "is_scanned": False}
+                            }
+                    except Exception:
+                        pass
+
+                    return {
+                        "raw_text": f"Scanned PDF: {filename} containing {num_pages} pages without embedded text layer.",
+                        "method": "Scanned PDF Detection",
+                        "excerpt": f"Scanned PDF with {num_pages} pages (no direct text layer; OCR required).",
+                        "metadata": {
+                            "page_count": num_pages,
+                            "word_count": 0,
+                            "is_scanned": True
+                        }
+                    }
+            except Exception as e:
+                print(f"pypdf extraction error for {filename}: {e}")
+
+        # Fallback stream parser
         try:
             with open(file_path, "rb") as f:
                 data = f.read()
-            # Basic text stream extraction from uncompressed PDF blocks
             text_chunks = re.findall(rb"\((.*?)\)Tj", data)
             if not text_chunks:
                 text_chunks = re.findall(rb"\[(.*?)\]TJ", data)
-            
             extracted = " ".join([c.decode("latin-1", errors="ignore") for c in text_chunks])
             extracted = re.sub(r"\s+", " ", extracted).strip()
-            
-            if len(extracted) > 30:
+            if len(extracted) > 20:
                 return {
                     "raw_text": extracted,
-                    "method": "Full Text NLP",
-                    "excerpt": extracted[:280] + ("..." if len(extracted) > 280 else ""),
-                    "metadata": {"pdf_stream_tokens": len(text_chunks)}
+                    "method": "PDF Stream Fallback",
+                    "excerpt": extracted[:300] + ("..." if len(extracted) > 300 else ""),
+                    "metadata": {"word_count": len(extracted.split()), "page_count": 1}
                 }
         except Exception:
             pass
-        return cls._metadata_fallback(file_path, filename, reason="Scanned PDF requires OCR or header-only")
+
+        return cls._binary_fallback(file_path, filename, reason="PDF format requires OCR")
 
     @classmethod
-    def _extract_xlsx(cls, file_path: Path, filename: str) -> dict:
-        try:
-            with zipfile.ZipFile(file_path) as z:
-                # Shared strings in xlsx
-                if "xl/sharedStrings.xml" in z.namelist():
-                    xml_content = z.read("xl/sharedStrings.xml")
-                    root = ET.fromstring(xml_content)
-                    strings = [t.text for t in root.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t') if t.text]
-                    joined = " ".join(strings)
-                    if len(joined) > 10:
-                        return {
-                            "raw_text": joined,
-                            "method": "Full Text NLP",
-                            "excerpt": joined[:280] + ("..." if len(joined) > 280 else ""),
-                            "metadata": {"cell_tokens": len(strings)}
+    def _extract_docx(cls, file_path: Path, filename: str) -> dict:
+        if HAS_DOCX and file_path.suffix.lower() == ".docx":
+            try:
+                doc = docx.Document(str(file_path))
+                paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+                
+                # Extract text inside tables
+                for table in doc.tables:
+                    for row in table.rows:
+                        row_text = " | ".join([cell.text.strip() for cell in row.cells if cell.text.strip()])
+                        if row_text:
+                            paragraphs.append(row_text)
+
+                text = "\n".join(paragraphs)
+                if len(text.strip()) > 5:
+                    return {
+                        "raw_text": text,
+                        "method": "python-docx Extraction",
+                        "excerpt": text[:300] + ("..." if len(text) > 300 else ""),
+                        "metadata": {
+                            "paragraph_count": len(doc.paragraphs),
+                            "table_count": len(doc.tables),
+                            "word_count": len(text.split())
                         }
-        except Exception:
-            pass
-        return cls._metadata_fallback(file_path, filename, reason="Binary spreadsheet layout")
+                    }
+            except Exception as e:
+                print(f"python-docx error for {filename}: {e}")
+
+        return cls._binary_fallback(file_path, filename, reason="Legacy Word or binary format")
+
+    @classmethod
+    def _extract_pptx(cls, file_path: Path, filename: str) -> dict:
+        if HAS_PPTX and file_path.suffix.lower() == ".pptx":
+            try:
+                prs = pptx.Presentation(str(file_path))
+                slide_texts = []
+                for i, slide in enumerate(prs.slides):
+                    slide_content = []
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text") and shape.text.strip():
+                            slide_content.append(shape.text.strip())
+                    if slide_content:
+                        slide_texts.append(f"Slide {i + 1}: " + " | ".join(slide_content))
+
+                text = "\n".join(slide_texts)
+                if len(text.strip()) > 5:
+                    return {
+                        "raw_text": text,
+                        "method": "python-pptx Slide Extraction",
+                        "excerpt": text[:300] + ("..." if len(text) > 300 else ""),
+                        "metadata": {
+                            "slide_count": len(prs.slides),
+                            "word_count": len(text.split())
+                        }
+                    }
+            except Exception as e:
+                print(f"python-pptx error for {filename}: {e}")
+
+        return cls._binary_fallback(file_path, filename, reason="Presentation slide extraction unavailable")
+
+    @classmethod
+    def _extract_spreadsheet(cls, file_path: Path, filename: str, ext: str) -> dict:
+        try:
+            if ext == "csv" or ext == "tsv":
+                delimiter = "\t" if ext == "tsv" else ","
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    reader = csv.reader(f, delimiter=delimiter)
+                    rows = list(reader)
+
+                if rows:
+                    headers = rows[0]
+                    num_rows = len(rows) - 1
+                    num_cols = len(headers)
+                    sample_rows = rows[1:6]
+
+                    preview_lines = [f"Columns ({num_cols}): {', '.join(headers)}", f"Total Data Rows: {num_rows}"]
+                    for r in sample_rows[:3]:
+                        preview_lines.append("Row: " + ", ".join(r[:6]))
+
+                    raw_text = "\n".join(preview_lines)
+                    return {
+                        "raw_text": raw_text,
+                        "method": "CSV Tabular Analysis",
+                        "excerpt": raw_text[:300] + ("..." if len(raw_text) > 300 else ""),
+                        "metadata": {
+                            "headers": headers,
+                            "row_count": num_rows,
+                            "column_count": num_cols
+                        }
+                    }
+            elif ext in ["xlsx", "xls"]:
+                # Basic string token extraction from unzipped XML or shared strings
+                import zipfile
+                import xml.etree.ElementTree as ET
+                if zipfile.is_zipfile(file_path):
+                    with zipfile.ZipFile(file_path) as z:
+                        if "xl/sharedStrings.xml" in z.namelist():
+                            root = ET.fromstring(z.read("xl/sharedStrings.xml"))
+                            strings = [t.text for t in root.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t') if t.text]
+                            joined = " ".join(strings)
+                            return {
+                                "raw_text": joined,
+                                "method": "Excel Workbook Extraction",
+                                "excerpt": joined[:300] + ("..." if len(joined) > 300 else ""),
+                                "metadata": {"cell_string_tokens": len(strings)}
+                            }
+        except Exception as e:
+            print(f"Spreadsheet extraction error: {e}")
+
+        return cls._binary_fallback(file_path, filename, reason="Spreadsheet preview parsed")
 
     @classmethod
     def _extract_image(cls, file_path: Path, filename: str) -> dict:
         try:
             with Image.open(file_path) as img:
                 width, height = img.size
-                format_name = img.format
+                img_format = img.format or "Image"
+                mode = img.mode
                 exif = img.getexif()
-                exif_tags = {k: str(v) for k, v in exif.items()} if exif else {}
+                exif_dict = {str(k): str(v) for k, v in exif.items()} if exif else {}
 
-                # Detect if file is schematic / drawing or low contrast receipt
-                fname_lower = filename.lower()
-                is_schematic = any(w in fname_lower for w in ["schematic", "circuit", "dwg", "altium", "pcb"])
-                is_unreadable_scan = any(w in fname_lower for w in ["unreadable", "fuzzy", "blur", "lowres"])
+                desc = (
+                    f"Image File: {filename} | Format: {img_format} | Resolution: {width}x{height} pixels | "
+                    f"Color Mode: {mode} | Aspect Ratio: {round(width / max(1, height), 2)}:1"
+                )
 
-                if is_schematic or is_unreadable_scan:
-                    return cls._metadata_fallback(
-                        file_path, 
-                        filename, 
-                        reason="Raster image lacking text layer or low OCR contrast (<28% confidence)",
-                        exif=exif_tags
-                    )
-                
-                # OCR simulated / extracted pipeline
-                # Extract simulated readable tokens based on heuristics
-                ocr_simulated = f"Scanned Document Receipt {filename}: Invoice itemization, dates, total amount due."
                 return {
-                    "raw_text": ocr_simulated,
-                    "method": "OCR Extracted",
-                    "excerpt": f"OCR Text Stream [{width}x{height} {format_name}]: {ocr_simulated}",
-                    "metadata": {"dimensions": f"{width}x{height}", "exif": exif_tags}
+                    "raw_text": desc,
+                    "method": "Image Analysis (Pillow)",
+                    "excerpt": desc,
+                    "metadata": {
+                        "dimensions": f"{width}x{height}",
+                        "format": img_format,
+                        "color_mode": mode,
+                        "exif": exif_dict
+                    }
                 }
-        except Exception:
-            pass
-        return cls._metadata_fallback(file_path, filename, reason="Image decode failed")
+        except Exception as e:
+            print(f"Image analysis error: {e}")
+
+        return cls._binary_fallback(file_path, filename, reason="Image header decoded")
 
     @classmethod
-    def _metadata_fallback(cls, file_path: Path, filename: str, reason: str = "", exif: dict = None) -> dict:
+    def _extract_text(cls, file_path: Path, filename: str) -> dict:
+        try:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+
+            lines = content.splitlines()
+            words = content.split()
+
+            return {
+                "raw_text": content,
+                "method": "Full Text Reader",
+                "excerpt": content[:300].strip() + ("..." if len(content) > 300 else ""),
+                "metadata": {
+                    "line_count": len(lines),
+                    "word_count": len(words),
+                    "char_count": len(content)
+                }
+            }
+        except Exception as e:
+            print(f"Text read error: {e}")
+
+        return cls._binary_fallback(file_path, filename, reason="Text encoding fallback")
+
+    @classmethod
+    def _binary_fallback(cls, file_path: Path, filename: str, reason: str = "") -> dict:
         size = file_path.stat().st_size if file_path.exists() else 0
         clean_name = re.sub(r"[_\-.]+", " ", filename)
         return {
-            "raw_text": f"Filename tokens: {clean_name}. Metadata fallback header.",
+            "raw_text": f"File name: {clean_name}. Size: {size} bytes.",
             "method": "Metadata Only Fallback",
-            "excerpt": f"[Metadata Only Fallback - {reason}. File size: {size} bytes]",
-            "metadata": {"reason": reason, "size_bytes": size, "exif": exif or {}}
+            "excerpt": f"Binary file '{filename}' ({size} bytes). {reason}",
+            "metadata": {"size_bytes": size, "reason": reason}
         }

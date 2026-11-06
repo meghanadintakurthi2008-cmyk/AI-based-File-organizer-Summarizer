@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .database import engine, Base, SessionLocal
 from .services.folder_service import FolderService
-from .routers import files, folders, clusters, metrics
+from .routers import files, folders, clusters, metrics, activity
 
 # Initialize DB tables and seed immediately
 Base.metadata.create_all(bind=engine)
@@ -37,6 +37,7 @@ app.include_router(files.router, prefix=settings.API_V1_STR)
 app.include_router(folders.router, prefix=settings.API_V1_STR)
 app.include_router(clusters.router, prefix=settings.API_V1_STR)
 app.include_router(metrics.router, prefix=settings.API_V1_STR)
+app.include_router(activity.router, prefix=settings.API_V1_STR)
 
 @app.get("/health", tags=["Health"])
 def health_check():

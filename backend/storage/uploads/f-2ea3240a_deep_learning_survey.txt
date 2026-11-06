@@ -1,1 +1,0 @@
-Abstract: We present an analysis of sparse self-attention transformer mechanisms with multi-head cross entropy optimization in PyTorch.

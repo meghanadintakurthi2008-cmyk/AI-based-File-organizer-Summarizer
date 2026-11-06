@@ -7,142 +7,140 @@ import {
   Check, 
   X, 
   Edit3, 
-  ChevronDown, 
-  Sparkles, 
-  ScanLine, 
-  AlertTriangle, 
+  Code, 
+  Film, 
+  Music,
+  Archive,
   Search, 
   FolderCheck,
-  CheckCheck
+  CheckCheck,
+  Sparkles,
+  Presentation,
+  Download,
+  Info,
+  FolderPlus
 } from 'lucide-react';
 
 export default function RecommendationTable({
-  files,
-  onApproveMove,
+  files = [],
+  onSummarizeFile, // Opens the Summarize modal
+  onRequestOrganize, // Opens confirmation modal for single file
+  onRequestBatchOrganize, // Opens confirmation modal for batch
+  onDownloadZip, // Downloads organized zip
   onReassignFolder,
   onDismiss,
   onInspectFile,
-  onApproveSelected,
-  onDismissSelected,
-  activeFilter,
-  setActiveFilter
+  activeCategoryFilter = 'All',
+  onSelectCategory,
+  onOpenCreateFolder
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFileIds, setSelectedFileIds] = useState(new Set());
-  const [openDropdownId, setOpenDropdownId] = useState(null);
 
-  // File format icon renderer
-  const getFormatIcon = (format) => {
-    switch (format?.toUpperCase()) {
-      case 'PDF':
+  // Format Icon helper
+  const getFormatIcon = (category) => {
+    switch (category) {
+      case 'PDF Files':
         return (
-          <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 dark:bg-rose-500/20 flex items-center justify-center shrink-0 border border-rose-500/20">
-            <span className="text-[10px] font-bold font-mono">PDF</span>
+          <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 border border-rose-500/20 font-mono font-bold text-[10px]">
+            PDF
           </div>
         );
-      case 'DOCX':
-      case 'DOC':
+      case 'Word Files':
         return (
-          <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 dark:bg-blue-500/20 flex items-center justify-center shrink-0 border border-blue-500/20">
-            <span className="text-[10px] font-bold font-mono">DOC</span>
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 border border-blue-500/20 font-mono font-bold text-[10px]">
+            DOC
           </div>
         );
-      case 'IMG':
-      case 'PNG':
-      case 'JPG':
+      case 'Excel Files':
         return (
-          <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 dark:bg-purple-500/20 flex items-center justify-center shrink-0 border border-purple-500/20">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
+            <FileSpreadsheet className="w-4 h-4" />
+          </div>
+        );
+      case 'PowerPoint Files':
+        return (
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+            <Presentation className="w-4 h-4" />
+          </div>
+        );
+      case 'Image Files':
+        return (
+          <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0 border border-purple-500/20">
             <ImageIcon className="w-4 h-4" />
           </div>
         );
-      case 'SHEET':
-      case 'XLSX':
-      case 'CSV':
+      case 'Code Files':
         return (
-          <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-500 dark:bg-teal-500/20 flex items-center justify-center shrink-0 border border-teal-500/20">
-            <FileSpreadsheet className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20">
+            <Code className="w-4 h-4" />
+          </div>
+        );
+      case 'Video Files':
+        return (
+          <div className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center shrink-0 border border-red-500/20">
+            <Film className="w-4 h-4" />
+          </div>
+        );
+      case 'Audio Files':
+        return (
+          <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center shrink-0 border border-teal-500/20">
+            <Music className="w-4 h-4" />
+          </div>
+        );
+      case 'Archive Files':
+        return (
+          <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0 border border-orange-500/20">
+            <Archive className="w-4 h-4" />
           </div>
         );
       default:
         return (
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/20">
+          <div className="w-8 h-8 rounded-lg bg-slate-500/10 text-slate-500 flex items-center justify-center shrink-0 border border-slate-500/20">
             <FileText className="w-4 h-4" />
           </div>
         );
     }
   };
 
-  // Ingestion Method badge renderer with user-friendly labels
-  const getIngestionBadge = (method) => {
-    switch (method) {
-      case 'Full Text NLP':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
-            <Sparkles className="w-3 h-3 text-emerald-500" />
-            Content Scan
-          </span>
-        );
-      case 'OCR Extracted':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60">
-            <ScanLine className="w-3 h-3 text-indigo-500" />
-            Scanned Document
-          </span>
-        );
-      case 'Metadata Only Fallback':
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
-            <AlertTriangle className="w-3 h-3 text-amber-500" />
-            File Info Only
-          </span>
-        );
-    }
-  };
-
-  // Predicted category pill
+  // Category Badge Colors
   const getCategoryBadge = (category) => {
     const map = {
-      'Research Papers': 'bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border-violet-200 dark:border-violet-800/60',
-      'Finance': 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60',
-      'Lecture Notes': 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800/60',
-      'Legal Contracts': 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
-      'Hardware Schematics': 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800/60',
-      'Engineering Docs': 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/60',
+      'PDF Files': 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800/60',
+      'Word Files': 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800/60',
+      'Excel Files': 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60',
+      'PowerPoint Files': 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
+      'Image Files': 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800/60',
+      'Code Files': 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60',
+      'Text Files': 'bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 border-slate-200 dark:border-zinc-700',
+      'Video Files': 'bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 border-red-200 dark:border-red-800/60',
+      'Audio Files': 'bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border-teal-200 dark:border-teal-800/60',
+      'Archive Files': 'bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border-orange-200 dark:border-orange-800/60',
+      'Other Files': 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
     };
-
-    const colorClass = map[category] || 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700';
+    const colorClass = map[category] || map['Other Files'];
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${colorClass}`}>
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${colorClass}`}>
         {category}
       </span>
     );
   };
 
-  // Confidence bar color
-  const getConfidenceColor = (conf) => {
-    if (conf >= 90) return { bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' };
-    if (conf >= 75) return { bar: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' };
-    return { bar: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400' };
-  };
-
-  // Filter files
+  // Filter files by search and active category card
   const filteredFiles = files.filter((file) => {
-    // Search filter
+    const query = searchQuery.toLowerCase();
     const matchesSearch = 
-      file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      file.predictedCategory.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      file.recommendedFolder.toLowerCase().includes(searchQuery.toLowerCase());
+      file.name.toLowerCase().includes(query) ||
+      file.predictedCategory.toLowerCase().includes(query) ||
+      file.recommendedFolder.toLowerCase().includes(query);
 
     if (!matchesSearch) return false;
 
-    // Category / quick filters
-    if (activeFilter === 'High Confidence') return file.confidence >= 90;
-    if (activeFilter === 'Needs Review') return file.confidence < 80;
-    if (activeFilter === 'Metadata Only Fallback') return file.ingestionMethod === 'Metadata Only Fallback';
-    if (activeFilter === 'Pending') return file.status === 'pending';
-    
+    if (activeCategoryFilter !== 'All') {
+      return file.predictedCategory === activeCategoryFilter;
+    }
+
     return true;
   });
 
@@ -164,83 +162,95 @@ export default function RecommendationTable({
     setSelectedFileIds(next);
   };
 
+  const selectedFilesList = files.filter((f) => selectedFileIds.has(f.id));
+
   return (
-    <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-zinc-900/90 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-xs overflow-hidden flex flex-col">
       
-      {/* Table Header & Controls Bar */}
-      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+      {/* Controls Bar: Search + Quick Category Filter */}
+      <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         
         {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by file name, category, or path..."
+            placeholder="Search by file name, detected type, or destination folder..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/80 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+            className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950/80 text-slate-900 dark:text-zinc-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors"
           />
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs">
-          {[
-            { id: 'All', label: 'All Files' },
-            { id: 'High Confidence', label: 'High Match (≥90%)' },
-            { id: 'Needs Review', label: 'Needs Review (<80%)' },
-            { id: 'Metadata Only Fallback', label: 'File Info Only' },
-          ].map((pill) => (
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {activeCategoryFilter !== 'All' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold border border-indigo-200 dark:border-indigo-800">
+              Filter: {activeCategoryFilter}
+              <button 
+                onClick={() => onSelectCategory('All')}
+                className="hover:text-indigo-900 dark:hover:text-white"
+              >
+                ×
+              </button>
+            </span>
+          )}
+
+          {onOpenCreateFolder && (
             <button
-              key={pill.id}
-              onClick={() => setActiveFilter(pill.id)}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
-                activeFilter === pill.id
-                  ? 'bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs'
-                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
-              }`}
+              onClick={onOpenCreateFolder}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white shadow-xs shadow-indigo-600/20 transition-all cursor-pointer"
+              title="Create a new custom folder"
             >
-              {pill.label}
+              <FolderPlus className="w-3.5 h-3.5" />
+              <span>+ Create New Folder</span>
             </button>
-          ))}
+          )}
+
+          <button
+            onClick={onDownloadZip}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 transition-colors cursor-pointer"
+            title="Download all organized files as a ZIP package"
+          >
+            <Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>Download Organized (ZIP)</span>
+          </button>
         </div>
       </div>
 
-      {/* Bulk Action Bar (Visible when items selected) */}
+      {/* Bulk Action Bar (Visible when files selected) */}
       {selectedFileIds.size > 0 && (
-        <div className="bg-indigo-50/90 dark:bg-indigo-950/40 px-4 py-2 border-b border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between text-xs animate-in fade-in">
-          <span className="font-medium text-indigo-900 dark:text-indigo-200">
+        <div className="bg-indigo-50/90 dark:bg-indigo-950/50 px-4 py-2.5 border-b border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between text-xs animate-in fade-in">
+          <span className="font-semibold text-indigo-950 dark:text-indigo-200">
             {selectedFileIds.size} file{selectedFileIds.size > 1 ? 's' : ''} selected
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                onApproveSelected(Array.from(selectedFileIds));
+                onRequestBatchOrganize(selectedFilesList);
                 setSelectedFileIds(new Set());
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-2xs transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs transition-colors cursor-pointer"
             >
               <CheckCheck className="w-3.5 h-3.5" />
-              Approve & Move Selected
+              Approve & Organize Selected
             </button>
             <button
-              onClick={() => {
-                onDismissSelected(Array.from(selectedFileIds));
-                setSelectedFileIds(new Set());
-              }}
-              className="px-2.5 py-1 rounded-md bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-300 dark:hover:bg-zinc-700 font-medium transition-colors"
+              onClick={() => setSelectedFileIds(new Set())}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-medium cursor-pointer"
             >
-              Dismiss
+              Cancel Selection
             </button>
           </div>
         </div>
       )}
 
       {/* Table Container */}
-      <div className="overflow-x-auto min-h-[360px]">
+      <div className="overflow-x-auto min-h-[380px]">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="border-b border-slate-200 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-950/50 text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-              <th className="py-3 pl-4 pr-2 w-8">
+            <tr className="border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950/50 text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
+              <th className="py-3.5 pl-4 pr-2 w-8">
                 <input
                   type="checkbox"
                   checked={filteredFiles.length > 0 && selectedFileIds.size === filteredFiles.length}
@@ -248,39 +258,39 @@ export default function RecommendationTable({
                   className="rounded border-slate-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
               </th>
-              <th className="py-3 px-3">File Details</th>
-              <th className="py-3 px-3">Scan Method</th>
-              <th className="py-3 px-3">Category</th>
-              <th className="py-3 px-3 min-w-[260px]">Target Folder</th>
-              <th className="py-3 px-3">Other Candidates</th>
-              <th className="py-3 pr-4 pl-3 text-right">Actions</th>
+              <th className="py-3.5 px-3">File Name</th>
+              <th className="py-3.5 px-3">Detected Type</th>
+              <th className="py-3.5 px-3 min-w-[200px]">Recommended Folder</th>
+              <th className="py-3.5 px-3">Size & Details</th>
+              <th className="py-3.5 pr-4 pl-3 text-right min-w-[260px]">Actions</th>
             </tr>
           </thead>
           
           <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/60">
             {filteredFiles.length === 0 ? (
               <tr>
-                <td colSpan="7" className="py-16 text-center text-slate-500 dark:text-zinc-400">
+                <td colSpan="6" className="py-16 text-center text-slate-500 dark:text-zinc-400">
                   <div className="flex flex-col items-center justify-center gap-2.5 max-w-sm mx-auto">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800/80 text-slate-400 dark:text-zinc-500 flex items-center justify-center">
                       <FolderCheck className="w-6 h-6 stroke-[1.5]" />
                     </div>
                     {files.length === 0 ? (
                       <>
+                        {/* Requirement empty state */}
                         <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
-                          No files in recommendation queue
+                          No files uploaded yet. Upload files to start AI analysis.
                         </p>
                         <p className="text-xs text-slate-500 dark:text-zinc-400">
-                          Upload files using the drag-and-drop area above to get instant folder recommendations.
+                          Upload files using the drag-and-drop area or upload button above.
                         </p>
                       </>
                     ) : (
                       <>
                         <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
-                          No files matching the active filter
+                          No files matching active filter
                         </p>
                         <p className="text-xs text-slate-500 dark:text-zinc-400">
-                          Try resetting your search query or switching the filter pills above.
+                          Clear search or switch category cards above.
                         </p>
                       </>
                     )}
@@ -289,14 +299,13 @@ export default function RecommendationTable({
               </tr>
             ) : (
               filteredFiles.map((file) => {
-                const confColor = getConfidenceColor(file.confidence);
                 const isSelected = selectedFileIds.has(file.id);
-                const isDropdownOpen = openDropdownId === file.id;
+                const isSummarizable = file.summarizable !== false;
 
                 return (
                   <tr 
                     key={file.id}
-                    className={`group transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 ${
+                    className={`transition-colors hover:bg-slate-50/80 dark:hover:bg-zinc-800/40 ${
                       isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
                     }`}
                   >
@@ -306,144 +315,82 @@ export default function RecommendationTable({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelectFile(file.id)}
-                        className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        className="rounded border-slate-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                       />
                     </td>
 
-                    {/* File Details: Icon, name, size, time */}
+                    {/* File Name */}
                     <td className="py-3.5 px-3 align-middle">
                       <div className="flex items-center gap-2.5">
-                        {getFormatIcon(file.format)}
+                        {getFormatIcon(file.predictedCategory, file.format)}
                         <div className="min-w-0 max-w-[220px]">
                           <button
                             onClick={() => onInspectFile(file)}
-                            className="font-medium text-zinc-900 dark:text-zinc-100 truncate block text-left hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                            title="Click to inspect AI features & extracted keywords"
+                            className="font-bold text-slate-900 dark:text-zinc-100 truncate block text-left hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                            title="Click to preview file details"
                           >
                             {file.name}
                           </button>
-                          <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-mono mt-0.5">
-                            <span>{file.size}</span>
-                            <span>•</span>
-                            <span>{file.timestamp}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Ingestion Method Badge */}
-                    <td className="py-3.5 px-3 align-middle whitespace-nowrap">
-                      {getIngestionBadge(file.ingestionMethod)}
-                    </td>
-
-                    {/* Predicted Category */}
-                    <td className="py-3.5 px-3 align-middle whitespace-nowrap">
-                      {getCategoryBadge(file.predictedCategory)}
-                    </td>
-
-                    {/* Recommended Target Folder & Confidence Bar */}
-                    <td className="py-3.5 px-3 align-middle">
-                      <div>
-                        {/* Folder Breadcrumb */}
-                        <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
-                          <FolderTree className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="truncate">{file.recommendedFolder}</span>
-                        </div>
-
-                        {/* Confidence Percentage Bar & Text */}
-                        <div className="mt-1.5 flex items-center gap-2 max-w-[200px]">
-                          <div className="flex-1 h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-300 ${confColor.bar}`}
-                              style={{ width: `${file.confidence}%` }}
-                            />
-                          </div>
-                          <span className={`text-[10px] font-mono font-bold ${confColor.text}`}>
-                            {file.confidence}%
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            .{file.ext?.toUpperCase() || file.format}
                           </span>
                         </div>
                       </div>
                     </td>
 
-                    {/* Alternative Suggestions Dropdown */}
-                    <td className="py-3.5 px-3 align-middle relative">
-                      {file.alternativeSuggestions && file.alternativeSuggestions.length > 0 ? (
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setOpenDropdownId(isDropdownOpen ? null : file.id)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border border-zinc-200 dark:border-zinc-700/80 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                          >
-                            <span>{file.alternativeSuggestions.length} candidates</span>
-                            <ChevronDown className="w-3 h-3 text-zinc-400" />
-                          </button>
-
-                          {/* Popover Menu */}
-                          {isDropdownOpen && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-40"
-                                onClick={() => setOpenDropdownId(null)}
-                              />
-                              <div className="absolute left-0 mt-1 w-72 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl z-50 p-2 space-y-1.5 animate-in fade-in zoom-in-95">
-                                <p className="text-[10px] uppercase font-semibold text-zinc-400 px-2 py-0.5 tracking-wider">
-                                  Alternative Target Centroids
-                                </p>
-                                {file.alternativeSuggestions.map((alt, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700/50"
-                                  >
-                                    <div className="flex items-center justify-between font-mono text-[11px]">
-                                      <span className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                                        {alt.folder}
-                                      </span>
-                                      <span className="text-zinc-500 shrink-0 font-bold ml-1">
-                                        {alt.confidence}%
-                                      </span>
-                                    </div>
-                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                                      {alt.reason}
-                                    </p>
-                                    <button
-                                      onClick={() => {
-                                        onApproveMove(file.id, alt.folder);
-                                        setOpenDropdownId(null);
-                                      }}
-                                      className="mt-1.5 w-full text-center py-1 rounded bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium transition-colors"
-                                    >
-                                      Assign to this folder
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-zinc-400 italic">None (Strong fit)</span>
-                      )}
+                    {/* Detected Type */}
+                    <td className="py-3.5 px-3 align-middle whitespace-nowrap">
+                      {getCategoryBadge(file.predictedCategory)}
                     </td>
 
-                    {/* Actions: Approve & Move, Reassign Folder, Dismiss */}
+                    {/* Recommended Folder */}
+                    <td className="py-3.5 px-3 align-middle font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                      <div className="flex items-center gap-1.5">
+                        <FolderTree className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                        <span className="truncate">{file.recommendedFolder}</span>
+                      </div>
+                    </td>
+
+                    {/* Size & Details */}
+                    <td className="py-3.5 px-3 align-middle font-mono text-xs text-slate-600 dark:text-zinc-400 whitespace-nowrap">
+                      <span>{file.size}</span>
+                      <span className="mx-1.5 text-slate-300">•</span>
+                      <span>{file.timestamp}</span>
+                    </td>
+
+                    {/* Actions: Summarize & Organize */}
                     <td className="py-3.5 pr-4 pl-3 align-middle text-right whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1.5">
+                      <div className="inline-flex items-center gap-2">
                         
-                        {/* Approve & Move */}
+                        {/* Requirement 3: On-Demand Summarize Action */}
                         <button
-                          onClick={() => onApproveMove(file.id, file.recommendedFolder)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white shadow-xs shadow-emerald-600/20 transition-all"
-                          title="Approve recommendation and execute folder transfer"
+                          onClick={() => onSummarizeFile(file)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isSummarizable
+                              ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs shadow-indigo-600/20 active:scale-95'
+                              : 'bg-slate-100 dark:bg-zinc-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                          }`}
+                          title={isSummarizable ? 'Generate concise or detailed AI summary' : 'Format not supported for text summary'}
                         >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Approve & Move</span>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Summarize</span>
                         </button>
 
-                        {/* Reassign Folder */}
+                        {/* Requirement 2: Approve & Organize Button */}
+                        <button
+                          onClick={() => onRequestOrganize(file)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white shadow-xs shadow-emerald-600/20 transition-all cursor-pointer"
+                          title="Approve recommendation and organize into type folder"
+                        >
+                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>Approve & Organize</span>
+                        </button>
+
+                        {/* Reassign Target Folder */}
                         <button
                           onClick={() => onReassignFolder(file)}
-                          className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/80 transition-colors"
-                          title="Reassign to another directory"
+                          className="p-1.5 rounded-xl text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700/80 transition-colors cursor-pointer"
+                          title="Reassign folder"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -451,8 +398,8 @@ export default function RecommendationTable({
                         {/* Dismiss */}
                         <button
                           onClick={() => onDismiss(file.id)}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/60 transition-colors"
-                          title="Dismiss recommendation"
+                          className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                          title="Dismiss file"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -469,9 +416,12 @@ export default function RecommendationTable({
       </div>
 
       {/* Table Footer info */}
-      <div className="px-4 py-3 border-t border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-950/40 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-        <span>Showing {filteredFiles.length} of {files.length} queued recommendations</span>
-        <span className="font-mono text-[11px]">Auto-refresh interval: 15s</span>
+      <div className="px-4 py-3 border-t border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/40 flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
+        <span>Showing {filteredFiles.length} of {files.length} queued files</span>
+        <div className="flex items-center gap-2">
+          <Info className="w-3.5 h-3.5 text-indigo-500" />
+          <span>Files are safely organized in type-based folders with duplicate preservation.</span>
+        </div>
       </div>
 
     </div>

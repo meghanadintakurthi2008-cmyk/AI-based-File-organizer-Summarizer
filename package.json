@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "backend": "cd backend && python run.py",
+    "start": "start.bat",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"

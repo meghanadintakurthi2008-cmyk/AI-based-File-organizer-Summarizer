@@ -5,7 +5,8 @@ import {
   Sun, 
   Moon, 
   Activity,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Download
 } from 'lucide-react';
 
 export default function Header({ 
@@ -13,7 +14,8 @@ export default function Header({
   setDarkMode, 
   pendingCount,
   backendOnline,
-  onOpenAiStatus
+  onOpenAiStatus,
+  onDownloadZip
 }) {
   return (
     <header className="border-b border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-md sticky top-0 z-30 transition-colors shadow-xs">
@@ -33,7 +35,7 @@ export default function Header({
               <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-zinc-100 flex items-center gap-2">
                 SmartFolder AI
                 <span className="hidden sm:inline-block text-xs font-normal text-slate-500 dark:text-zinc-400">
-                  — Content-Based Organizer
+                  — File-Type Organizer & Summarizer
                 </span>
               </h1>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60">
@@ -43,9 +45,11 @@ export default function Header({
             </div>
             
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400">
-              <span className="inline-flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${backendOnline ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-                {backendOnline ? 'Backend Connected' : 'Connecting Backend...'}
+              <span className="inline-flex items-center gap-1.5 font-medium">
+                <span className={`w-2 h-2 rounded-full ${backendOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                <span className={backendOnline ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-rose-600 dark:text-rose-400 font-semibold'}>
+                  {backendOnline ? 'Connected' : 'Disconnected'}
+                </span>
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1 text-slate-600 dark:text-zinc-300">
@@ -56,9 +60,19 @@ export default function Header({
           </div>
         </div>
 
-        {/* Right: Actions & Theme Toggle */}
+        {/* Right: Actions, Download ZIP, & Theme Toggle */}
         <div className="flex items-center gap-2">
           
+          {/* Download Organized ZIP Button */}
+          <button
+            onClick={onDownloadZip}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-colors cursor-pointer"
+            title="Download categorized folder structure as a ZIP package"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Download ZIP</span>
+          </button>
+
           {/* AI Status Modal Button */}
           <button
             onClick={onOpenAiStatus}
@@ -72,7 +86,7 @@ export default function Header({
           {/* Dark / Light Toggle */}
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="p-2 text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors border border-slate-200 dark:border-zinc-800"
+            className="p-2 text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors border border-slate-200 dark:border-zinc-800 cursor-pointer"
             title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle theme"
           >

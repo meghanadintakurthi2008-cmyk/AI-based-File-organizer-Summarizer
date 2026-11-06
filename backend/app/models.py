@@ -36,6 +36,7 @@ class FolderNode(Base):
     parent_path = Column(String(255), nullable=True, index=True)
     file_count = Column(Integer, default=0)
     is_open = Column(Integer, default=0)
+    is_custom = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
@@ -65,3 +66,44 @@ class MetricSnapshot(Base):
     trend_week = Column(String(32), default="+14.8%")
     target_rate = Column(String(32), default="85.5% automated")
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class SummaryRecord(Base):
+    __tablename__ = "summary_records"
+
+    id = Column(String(64), primary_key=True, index=True)
+    file_id = Column(String(64), ForeignKey("file_records.id"), nullable=True, index=True)
+    filename = Column(String(255), nullable=False)
+    file_type = Column(String(64), nullable=False)
+    mode = Column(String(32), default="structured")
+    title = Column(String(255), nullable=True)
+    overview = Column(Text, nullable=False)
+    main_topic = Column(String(255), nullable=False)
+    detailed_summary = Column(Text, nullable=False)
+    important_points = Column(JSON, default=list)        # list of key takeaway points
+    key_terms = Column(JSON, default=list)               # [{"term": "...", "definition": "..."}]
+    dates_figures_facts = Column(JSON, default=list)     # [{"item": "...", "context": "...", "category": "date|figure|fact"}]
+    conclusion = Column(Text, nullable=True)
+    is_combined = Column(Integer, default=0)             # 1 if multi-document summary
+    source_files = Column(JSON, default=list)            # ["file1.pdf", "file2.docx"]
+    common_topics = Column(JSON, default=list)           # for combined summary
+    key_differences = Column(JSON, default=list)         # for combined summary
+    key_findings = Column(JSON, default=list)            # for combined summary
+    word_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    activity_type = Column(String(64), nullable=False, index=True)  # upload, organize, summarize, folder_create, folder_rename, file_move, file_rename, file_delete, file_preview, file_download, search
+    description = Column(Text, nullable=False)
+    file_name = Column(String(255), nullable=True)
+    file_id = Column(String(64), nullable=True)
+    folder_from = Column(String(255), nullable=True)
+    folder_to = Column(String(255), nullable=True)
+    status = Column(String(32), default="success")  # success, failed, pending
+    extra_data = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+
